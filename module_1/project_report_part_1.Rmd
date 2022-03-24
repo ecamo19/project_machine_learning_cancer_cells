@@ -1,0 +1,1086 @@
+---
+title: "CMSC 630 Project part 1"
+author: "Erick Calderon-Morales"
+output: 
+ prettydoc::html_pretty:
+    fig_width: 15
+    fig_height: 10
+    highlight: pygments
+    theme: cayman
+    number_sections: true
+    toc: yes
+    toc_depth: 1    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "", eval = FALSE)
+```
+
+
+# Porject Description
+
+## Dataset
+Students will work on supplied dataset of 500 real-life cancerous smear images coming from
+Wroclaw Academic Hospital in Poland. Images come from patients suffering from various
+forms of cervical cancer. There are 7 types of cancerous cells being identified, which will be
+used in later stages of the project. All images are in RGB format in .bmp file system, of
+768x568 resolution taken under a microscope with 400x magnification. The dataset consists
+of following types of cells:
+
++ 50 columnar epithelial cells
++ 50 parabasal squamous epithelial cells
++ 50 intermediate squamous epithelial cells
++ 50 superficial squamous epithelial cells
++ 100 mild nonkeratinizing dysplastic cells
++ 100 moderate nonkeratinizing dysplastic cells
++ 100 severe nonkeratinizing dysplastic cells
+
+## Requirements
+Following requirements are necessary for completion of the project:
+
++ Designed program must work in a batch setting, taking as an input a given set-up file with
+location of images and required functions to be run.
+
++ Program can be implemented in any language.
+
++ API or software packages for image processing are not allowed. All functions must be
+original implementation of the student. Exceptions include functions for opening/saving an
+image.
+
++ Program should output not only processed images, but also required statistics to be
+collected.
+
++ Students must submit the code of their program plus a written report discussing the
+implementations, used functions and obtained results.
+
+## Functionality to be implemented
+
+During the first stage of the project students must implement the following functionality:
+
+General framework for processing all of images in a batch setting with supplying set-up
+initializing file.• Noise addition functions that will allow to corrupt each image with:
+
++ Salt and pepper noise of user-specified strength
++ Gaussian noise of user-specified parameters
++ Converting color images to selected single color spectrum.
++ Histogram calculation for each individual image.
++ Averaged histograms of pixel values for each class of images.
++ Histogram equalization for each image.
++ Selected image quantization technique for user-specified levels.
+ 
+Filtering operations:
+
++ Linear filter with user-specified mask size and pixel weights.
++ Median filter with user-specified mask size and pixel weights.
+
+Display the following performance measures:
+
++ Processing time for the entire batch per each procedure
++ Averaged processing time per image per each procedure
++ MSQE for image quantization levels
+
+# Report 
+
+_All functions where performed in a batch setting, please refer to the 
+file called __performance_measures__ to see the implementation of this._
+
+Below will be the explanation of each single function with the arguments involve.
+
+## Use of the library h5py. 
+
+Before running the analysis, all images where saved in a h5py binary data format. This 
+was done with the python package called h5py. This procedure let me store the 499 
+images in 7 groups,corresponding to each one of the classes of cancer images presented 
+in the original images tag name. The advantage of the procedures was that it lets 
+store huge amounts of data that is easily manipulable with NumPy package. Also
+let you save the images into one single file.
+
+For this procedure the function called store_BMP_images_as_h5py.py created the 
+file called cancerous_cell_smears.hdf5. It took 1.39 seconds to saved all the 
+499 images into one single file. 
+
+The function images_to_hdf5(path1,path2) takes 2 arguments:
+
++ path1 which is the path where the images are stored  
++ path2 with is the path where the h5py file will be stored.
+
+```{python}
+def images_to_hdf5(path1, path2):
+    #This function takes the path where the images are, read them and save a
+    # hdf5 file
+    #Path2 where the hdf5 file will be saved
+    
+    # Create empty dictionary for storing images and ids
+    images_dict = {}
+    
+    for file in glob.glob(f"{path1}/*.BMP"):
+    
+        #Get image id
+        img_id = os.path.basename(file)
+    
+        #Read the image
+        img = cv2.imread(file)
+       
+        #append key and value to dictionary
+        images_dict[img_id] = img
+        
+    # Create a new HDF5 file
+    file = h5py.File(f'{path2}/cancerous_cell_smears.hdf5', "w")
+    
+    # Create a dataset for each image stored in the h5py file
+    for key, value in images_dict.items():
+        
+        #Type 1
+        if 'cyl' in key: 
+            key = file.create_dataset(
+                (f'class_cyl/image_{key}'), np.shape(value), h5py.h5t.STD_U8BE, data=value)
+        #Type 2
+        elif 'inter' in key:
+            key = file.create_dataset(
+                (f'class_inter/image_{key}'), np.shape(value), h5py.h5t.STD_U8BE, data=value)
+        #Type 3
+        elif 'let' in key:
+            key = file.create_dataset(
+                (f'class_let/image_{key}'), np.shape(value), h5py.h5t.STD_U8BE, data=value)
+        #Type 4
+        elif 'mod' in key:
+            key = file.create_dataset(
+                (f'class_mod/image_{key}'), np.shape(value), h5py.h5t.STD_U8BE, data=value)
+        #Type 5
+        elif 'para' in key:
+            key = file.create_dataset(
+                (f'class_para/image_{key}'), np.shape(value), h5py.h5t.STD_U8BE, data=value)
+        #Type 6  
+        elif 'super' in key:
+            key = file.create_dataset(
+                (f'class_super/image_{key}'), np.shape(value), h5py.h5t.STD_U8BE, data=value)
+        #Type 7
+        elif 'svar' in key:
+            key = file.create_dataset(
+                (f'class_svar/image_{key}'), np.shape(value), h5py.h5t.STD_U8BE, data=value)
+                
+    #Prin how many images were read and id of each one    
+    print(f'\n{len(images_dict)} images were read:')
+    for key in images_dict:
+        print(f'\t- {key}')    
+    
+    print(f'\nThe cancerous_cell_smears.hdf5 file was save on: ')
+    print(f'\n{path2}')
+
+#Test function----------------------------------------------------------------- 
+#path1= '~/image_analysis/project/part_1/cancerous_cell_smears_images'
+#path2='~/image_analysis/project/part_1'
+#images_to_hdf5(path1,path2)
+```
+
+## Salt and pepper noise of user-specified strength
+
+Salt-and-pepper noise is characterized by black and white spots randomly distributed 
+in an image. For doing this the function called salt_pepper(image_array,perc, path)
+was created. 
+
+This function adds noise of user-specified strength to an image by selecting pixels
+randomly from the image and then setting those pixel values to black and the other 
+to white.
+
+This function takes three arguments:
+
++ img: This is the name of the image in the .hdf5 file wanted to be analyzed  
+
++ perc: This is an integer value between 0 and 100% that represents the percentage 
+of noise applied to the image
+
++ path is the location where the .hdf5 file is located.
+
+
+The analysis of the 499 images with the salt_pepper() function took in 
+total 5 min (334.53 seconds) and each image on average took 0.67 seconds 
+
+This function returns the original image with noise. In this case I analyzed the 
+image called inter38.BMP with a 50% of salt and pepper noise. 
+
+<center>
+
+
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/salt_and_pepper.png)
+
+
+</center>
+
+
+```{python}
+#Salt and peper funtion -------------------------------------------------------
+
+def salt_pepper(img,perc):
+    
+    perc = int(perc) 
+
+    #Get image from dataset
+    
+    hdf = h5py.File(f'{path}/cancer_images.hdf5','r') 
+    
+     for i in hdf:
+         group = hdf.get(i) 
+        
+         if img in group:
+             image_array = np.array(group.get(img)) 
+             break
+        
+     #Save array as image for use put pixel function
+     image = Image.fromarray(image_array.astype(np.uint8))
+    
+    # #Convert grayscale image		
+     image = image.convert("L")
+
+    if perc == None  :
+        print("\nPlease specify the percentage of salt and pepper that you want"
+              " Range: 0-100%") 
+    else:
+        
+        #Select number of of pixels
+        n = int(((image_array.shape[0]*image_array.shape[1])*perc)/100)
+        
+        #Sample pixels randomly
+        x, y = np.random.randint(0,image_array.shape[1], n),np.random.randint(0,image_array.shape[0],n)
+        
+        #Save array as image for use put pixel funtion
+        image = Image.fromarray(image_array.astype(np.uint8))
+        
+        for (x,y) in zip(x,y):
+            if np.random.rand() < 0.5:
+                image.putpixel((x,y),0)
+       
+            else:
+                image.putpixel((x,y), 255)
+        
+        return  image.show()               
+                
+#Function test ----------------------------------------------------------------
+#path1 = "~/image_analysis/project/part_1"
+# salt_pepper('image_inter38.BMP', perc = 50) 
+```
+
+## Gaussian noise of user-specified parameters
+
+For this function, Gaussian noise was defined as a type of noise in which, at 
+each pixel position,the random noise value, that affects the true pixel 
+value, is drawn from Gaussian probability density function with mean μ and 
+standard deviation σ 
+
+For this I created the function called gaussian_noise() that takes five arguments:
+
++ img: This is the name of the image in the .hdf5 file wanted to be analyzed  
+
++ perc: This is an integer value between 0 and 100% that represents the percentage 
+of noise applied to the image
+
++ path: is the location where the .hdf5 file is located.
+
++ mean: Mean value to be specify for drawing a random value from a normal distribution 
+
++ std: Standard deviation to be specify for drawing a random value from a normal distribution
+
+
+The analysis of the 499 images with the gaussian_noise() function took in total, 4 min 
+(244.73 seconds) and each image on average took 0.49 seconds.
+
+This function returns the original image with the Gaussian noise. In this case I 
+analyzed the image called inter38.BMP with a 50% of noise. 
+
+
+<center>
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/gaussian_noise.png)
+
+
+</center>
+
+
+```{python}
+def gaussian_noise(image,perc, mean=0, std=1,path ): #,path
+    perc = int(perc) 
+    
+     #Get image from dataset
+     hdf = h5py.File(f'{path}/cancer_images.hdf5','r') 
+    
+     for i in hdf:
+         group = hdf.get(i) 
+        
+         if img in group:
+             image_array = np.array(group.get(img)) 
+             break
+         else:
+             print(f'image not found')
+    
+    #Save image for use put pixel funtion
+    image = Image.fromarray(image_array.astype(np.uint8))
+    
+
+    if perc == None  :
+        print("\nPlease specify the percentage of noise that you want in the image"
+              " Range: 0-100%")
+     
+    else:
+        
+        #Select n number of of pixels (percentage of noise)
+        n = int(((image_array.shape[0]*image_array.shape[1])*perc)/100)
+        
+        #Sample pixels randomly
+        x, y = np.random.randint(0,image_array.shape[1], n),np.random.randint(0,image_array.shape[0],n)
+        
+        #Sample a value from a gaussian distribution
+        value_from_gaussian_dist1 = np.random.normal(mean, std)
+        
+        #use special normalization function for values out range 0-255 
+        if value_from_gaussian_dist1 > 255 or value_from_gaussian_dist1 < 0:
+            
+            value_from_gaussian_dist = round((value_from_gaussian_dist1/(np.max(image_array) - np.min(image_array))) * 255) 
+
+        else:
+        
+            value_from_gaussian_dist = round(value_from_gaussian_dist1)
+
+            
+        for (x,y) in zip(x,y):
+            
+                image.putpixel((x,y),int(value_from_gaussian_dist))
+        
+        return  image.show()  
+    
+#Test -------------------------------------------------------------------------
+#path1 = "~/image_analysis/project/part_1"
+#gaussian_noise("image_cyl03.BMP",perc = 0, path = path1,mean=5, std=1)
+```
+
+
+## Converting color images to selected single color spectrum.
+Each RGB image is composed by three color channels, Red, Green and Blue. There are 
+256 discrete amounts of each primary color that can be added to produce another color. 
+The combination of this three colors primary generates an integer value in a closed 
+range [0, 255]. 
+
+For this I created the function called extract_color() that takes three arguments:
+
++ img: This is the name of the image in the .hdf5 file wanted to be analyzed  
+
++ path: is the location where the .hdf5 file is located.
+
++ color: That can take the values red, green or blue.  
+
+
+The analysis of the 499 images with the extract_color() function took in total 6.10 seconds 
+and each image on average took 0.012 seconds.
+
+
+This function returns the image with the channel selected. In this case I extracted 
+from the image called inter38.BMP the green channel. 
+
+<center>
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/green_image.png)
+
+
+</center>
+
+
+```{python}
+def extract_color(img,path,color = ...): #
+    
+     #   Get image from dataset
+         hdf = h5py.File(f'{path}/cancer_images.hdf5','r') 
+    
+         for i in hdf:
+             group = hdf.get(i) 
+            
+             if img in group:
+                 image_array = np.array(group.get(img)) 
+                 break
+             else:
+                 print(f'image not found')
+        
+        #Lower case color
+        color_lower = color.lower()
+       
+        #Select channel
+        if color_lower != "red" and color_lower != "green" and color_lower != "blue":
+                print(f'\nPlease select a color channel that is Red, Green or Blue')
+        
+        elif color_lower == "red":
+                
+            # extract red channel
+            red_channel =  image_array[:,:,0]
+
+            # create empty image with same shape as the image
+            red_img = np.zeros(image_array.shape)
+
+            #assign the red channel of src to empty image
+            red_img[:,:,0] = red_channel
+            
+            #Transform array to img
+            img_single_color = Image.fromarray(red_img.astype(np.uint8))
+            
+            #img_single_color.show()
+         
+        elif color_lower == "green":
+                
+            # extract red channel
+            green_channel = image_array[:,:,1]
+
+            # create empty image with same shape as the image
+            green_img = np.zeros(image_array.shape)
+
+            #assign the red channel of src to empty image
+            green_img[:,:,1] = green_channel
+            
+            #Transform array to img
+            img_single_color = Image.fromarray(green_img.astype(np.uint8))
+            
+            #img_single_color.show()
+
+        elif color_lower == "blue":
+                
+            # extract red channel
+            blue_channel = image_array[:,:,2]
+
+            # create empty image with same shape as the image
+            blue_img = np.zeros(image_array.shape)
+
+            #assign the red channel of src to empty image
+            blue_img[:,:,2] = blue_channel
+            
+            #Transform array to img
+            img_single_color = Image.fromarray(blue_img.astype(np.uint8))
+        
+            img_single_color.show()
+
+#Function test ----------------------------------------------------------------
+# path1 = "~/image_analysis/project/part_1"
+# extract_color("image_inter38.BMP",path = path1 ,color = "green", )
+```
+
+## Histogram calculation for each individual image.
+An histogram shows the distribution in the range of 0-255 of the pixels. This is
+a useful tool for identify the quality of the image 
+
+For this I created the function called hist_for_each_image() that takes two arguments:
+
++ img: This is the name of the image in the .hdf5 file wanted to be analyzed  
+
++ path: is the location where the .hdf5 file is located.
+
+
+The analysis of the 499 images with the hist_for_each_image() function took in 
+total 141.76 seconds and each image on average took 0.28 seconds 
+
+This function returns a histogram with the distribution of pixels from the image 
+selected. In this case I am showing the distribution of the pixels from the image 
+called inter38.BMP. As showed in the figure from below,there is a high concentration of 
+pixels around the range 150-175. This could indicate the presence of a single object
+with a high concentration of pixels.
+
+
+<center>
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/histogram.png)
+</center>
+```{python}
+def hist_for_each_image(image,path): 
+    
+    #   Get image from dataset
+    hdf = h5py.File(f'{path}/cancer_images.hdf5','r') 
+    
+     for i in hdf:
+         group = hdf.get(i) 
+        
+         if img in group:
+             image_array = np.array(group.get(img)) 
+             break
+         else:
+             print(f'image not found')
+    
+    colors = ("red", "green", "blue")
+    channel_ids = (0, 1, 2)
+
+    plt.xlim([0, 256])
+    
+    for channel_id, color in zip(channel_ids, colors):
+        
+        #Generate Histogram
+        histogram, bin_edges = np.histogram(
+             image_array[:, :, channel_id], bins=256, range=(0, 256))
+        
+        plt.plot(bin_edges[0:-1], histogram, color=color)
+        plt.legend(['Red Channel', 'Green Channel', 'Blue Channel'])
+        plt.title(f'Histgram for all the pixels')      
+    
+    plt.show()
+
+#Function test ----------------------------------------------------------------
+# path1 = "~/image_analysis/project/part_1"
+# hist_for_each_image("image_cyl03.BMP", path=path1)
+```
+
+## Averaged histograms of pixel values for each class of images.
+For calculating the distribution of the pixel values for each class of image I followed
+two steps.
+
++ First, I create seven lists storing the images that belong to each class
+
+```{python}
+for group_name in hdf:
+    group = hdf.get(group_name) 
+    
+    for i in group:
+
+        #Create empty arrays for use in the plots
+        histograms_cyl = np.array([])
+        histogram_inter = np.array([])
+        histogram_let = np.array([])
+        histogram_mod = np.array([])
+        histogram_para = np.array([])
+        histogram_svar = np.array([])
+        histogram_super = np.array([])
+        
+        
+        if 'cyl' in i:
+            
+            array_img_cyl = np.array(group.get(i))  
+            #Extract grey channel
+            array_img_cyl = array_img_cyl[:,:,0]            
+            
+            histograms_plot_cyl = np.append(histograms_cyl, array_img_cyl)
+               
+        elif 'inter' in i:
+            
+            array_img_inter = np.array(group.get(i))
+            #Extract grey channel
+            array_img_inter = array_img_inter[:,:,0]
+            
+            histograms_plot_inter = np.append(histogram_inter, array_img_inter)
+            
+            
+        elif 'let' in i:
+            
+            array_img_let = np.array(group.get(i))       
+            #Extract grey channel
+            array_img_let = array_img_let[:,:,0]
+            
+            
+            histograms_plot_let = np.append(histogram_let, array_img_let)
+            
+                         
+        elif 'mod' in i:
+            
+            array_img_mod = np.array(group.get(i))       
+            #Extract grey channel
+            array_img_mod = array_img_mod[:,:,0]
+            
+            histograms_plot_mod = np.append(histogram_mod, array_img_mod)
+        
+        elif 'para' in i:
+            
+            array_img_para = np.array(group.get(i))       
+            #Extract grey channel
+            array_img_para = array_img_para[:,:,0]
+            
+            histograms_plot_para = np.append(histogram_mod, array_img_para)
+        
+        elif 'super' in i:
+            
+            array_img_super = np.array(group.get(i))       
+            #Extract grey channel
+            array_img_super = array_img_super[:,:,0]
+            
+            histograms_plot_super = np.append(histogram_super, array_img_super)
+        
+        elif 'svar' in i:
+            		
+            array_img_svar = np.array(group.get(i))       
+            #Extract grey channel
+            array_img_svar = array_img_svar[:,:,0]
+            
+            histograms_plot_svar = np.append(histogram_svar, array_img_svar)
+
+```
+
+
++ Second, I use the function called plot_density_cancer_cells(). This function
+takes the argument called classe which returns a histogram with the distribution 
+of  all pixels from the images belonging to a single class selected 
+
+The analysis of the 499 images with the plot_density_cancer_cells() function took a
+total time of 21.02 seconds and each image on average took 0.042 seconds 
+
+This function returns a histogram with the distribution of pixels from all the images
+within a class. In this case I am showing the distribution of the pixels from the class 
+called cyl. As showed in the figure from below,there is a high concentration of 
+pixels around the range 150. This could indicate the that most of the pictures in this
+class contains a distinct object very similar across all images.  
+
+<center>
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/histogram_class.png)
+</center>
+
+
+```{python}
+#Averaged histograms of pixel values for each class of images.
+#Plot arrays ------------------------------------------------------------------
+def plot_density_cancer_cells(classe):
+        
+        classe = classe.lower()
+                
+        if classe == 'cyl':
+         
+            plot_cyl = sns.distplot(array, hist=True, 
+                                    kde=True, bins=45, color = "dodgerblue",
+                                    kde_kws={'linewidth': 2})
+            
+
+            plot_cyl.set(xlim=(0, 256), xlabel="Pixel Value", title="Class Cyl")
+            plt.show()
+
+        elif classe == 'inter':
+            
+            plot_inter = sns.distplot(array, hist=True, 
+                                    kde=True, bins=45, color = "dodgerblue",
+                                    kde_kws={'linewidth': 2})
+
+
+            plot_inter.set(xlim=(0, 256), xlabel="Pixel Value", title="Class Inter")
+            plt.show()
+            
+        elif classe == 'let':
+            
+            plot_let = sns.distplot(array, hist=True, 
+                                    kde=True, bins=45, color = "dodgerblue",
+                                    kde_kws={'linewidth': 2})
+
+
+            plot_let.set(xlim=(0, 256), xlabel="Pixel Value", title="Class Let")
+            plt.show()
+            
+        elif classe == 'mod':
+            
+            plot_mod = sns.distplot(array, hist=True, 
+                                    kde=True, bins=45, color = "dodgerblue",
+                                    kde_kws={'linewidth': 2})
+
+
+            plot_mod.set(xlim=(0, 256), xlabel="Pixel Value", title="Class Mod")
+            plt.show()
+             
+        elif classe == 'para':
+            
+            plot_para = sns.distplot(array, hist=True, 
+                                    kde=True, bins=45, color = "dodgerblue",
+                                    kde_kws={'linewidth': 2})
+
+
+            plot_para.set(xlim=(0, 256), xlabel="Pixel Value", title="Class Para")
+            plt.show()
+            
+        elif classe == 'super':
+            
+            plot_super = sns.distplot(array, hist=True, 
+                                    kde=True, bins = 30, color = "dodgerblue",
+                                    kde_kws={'linewidth': 2})
+
+
+            plot_super.set(xlim=(0, 256), xlabel="Pixel Value", title="Class Super")
+            plt.show()
+            
+        elif classe == 'svar':
+         
+            plot_svar = sns.distplot(array, hist=True, 
+                                    kde=True, bins=45, color = "dodgerblue",
+                                    kde_kws={'linewidth': 2})
+
+
+            plot_svar.set(xlim=(0, 256), xlabel="Pixel Value", title="Class Svar")
+            plt.show()
+            
+        else:
+            print(f'{classe} is not available please seleted a class from:')
+            print(f'\t-cyl')
+            print(f'\t-inter')
+            print(f'\t-let')
+            print(f'\t-mod')
+            print(f'\t-para')
+            print(f'\t-super')
+            print(f'\t-svar')
+
+#Test code -------------------------------------------------------------------        
+#plot_density_cancer_cells('cyl')
+```
+
+## Histogram equalization for each image.
+The goal with a histogram equalization is to improve the contrast of an image 
+by rescaling the histogram so that the histogram of the new image is spread out 
+and the pixel intensities range over all possible gray-level values. 
+
+For this function I followed the code described in the book called Image 
+Processing and Acquisition using Python from the authors Sridevi Pudipeddi and Ravi 
+Chityala (page 108).
+
+For this I created the function called equalization_hist() that takes two arguments:
+
++ img: This is the name of the image in the .hdf5 file wanted to be analyzed  
+
++ path: is the location where the .hdf5 file is located.
+
+
+The analysis of the 499 images with the equalization_hist() function took a
+total time of 41 min (2489.96 seconds) and each image on average took 4.98 seconds 
+
+This function returns two histograms with the distribution of pixels before 
+and after the equalization of the image selected. In this case, we can see that in
+image with no equalization, there a high concentration of pixel around 150 but
+after the equalization the pixel values are spread around. 
+
+<center>
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/equa.png)
+</center>
+
+
+```{python}
+def equalization_hist(img,path): 
+    #   Get image from dataset
+     hdf = h5py.File(f'{path}/cancer_images.hdf5','r') 
+    
+     for i in hdf:
+         group = hdf.get(i) 
+        
+         if img in group:
+             image_array = np.array(group.get(img)) 
+             break
+         else:
+             print(f'image not found')
+    
+    #Save array as image 
+    image = Image.fromarray(image_array.astype(np.uint8))
+        
+    #convert image to a 1D array.
+    image_array_flat = image_array.flatten() 
+
+    # Histogram and the bins of the image 
+    hist,bins = np.histogram(image_array,256,[0,255])
+   
+    # cumulative distribution function 
+    cdf = hist.cumsum()
+    
+    # Places where cdf=0 is masked or ignored and
+    # rest is stored in cdf_m.
+    cdf_m = np.ma.masked_equal(cdf,0)
+
+    # Histogram equalization is performed.
+    num_cdf_m = (cdf_m - cdf_m.min())*255
+    den_cdf_m = (cdf_m.max()-cdf_m.min())
+    cdf_m = num_cdf_m/den_cdf_m
+    
+    # The masked places in cdf_m are now 0.
+    cdf = np.ma.filled(cdf_m,0).astype('uint8')
+
+    
+    # cdf values are assigned in the flattened array.
+    image_cdf = cdf[image_array_flat] 
+    
+    image_equalized = np.reshape(image_cdf,image_array.shape)
+    image_equalized = Image.fromarray(image_equalized)
+    
+    #Convert grayscale image		
+    image_equalized = image_equalized.convert("L")
+    
+    #image_equalized.show()
+    
+    #Generate histogram pre and post
+
+    fig, ax = plt.subplots(1,2, figsize=(12,7), sharex=True, sharey=True)
+    ax[0].title.set_text(f' Image with no equalization')
+    ax[1].title.set_text(f' Image with equalization')
+
+    #Histogram of image before equalization
+    sns.distplot(image, hist=True,kde=True, bins=45, color = "dodgerblue",
+                 kde_kws={'linewidth': 2}, ax=ax[0])
+    
+
+    sns.distplot(image_equalized, hist=True,kde=True, bins=45, 
+                 color = "dodgerblue",kde_kws={'linewidth': 2})  
+   
+#Test Function ---------------------------------------------------------------            
+# path1 = "~/image_analysis/project/part_1/"
+# equalization_hist("image_cyl03.BMP", path = path1)
+```
+
+## Linear filter with user-specified mask size and pixel weights.
+The mean filter is a filter used to remove noise and it has the effect of blurry the 
+image.
+
+For this function I followed the tutorial from https://www.pyimagesearch.com/2016/07/25/convolutions-with-opencv-and-python/
+
+The function that computes the mean filter is called mean_convolve() and takes four 
+arguments:
+
++ img: This is the name of the image in the .hdf5 file wanted to be analyzed  
+
++ path_h5py_file: is the location where the .hdf5 file is located.
+
++ mask_size: Interger odd number 
+
++ pixel_weights = Vector specifying the pixel weights. The default is 1
+
+The analysis of the 499 images with the plot_density_cancer_cells() function took a
+total time of 51 min (3059.48 seconds) and each image on average took 6.13 seconds 
+
+For the mean filter, a kernel of 3x3 was applied and no weights were added.
+Since this image has no noise on it the resulted image was just a blur one.
+
+
+
+<center>
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/mean_filter.png)
+</center>
+
+
+
+
+```{python}
+def mean_convolve(img,mask_size, pixel_weights = [1],path_h5py_file):
+    
+    if mask_size % 2 != 0:
+         
+        
+         # # #Get image from dataset
+          hdf = h5py.File(f'{path_h5py_file}/cancer_images.hdf5','r') 
+    
+          for i in hdf:
+             group = hdf.get(i) 
+             if img in group:
+                 image_array = np.array(group.get(img)) 
+                 break
+        
+         # #Save array as image for use put pixel function
+          image_rgb = Image.fromarray(image_array.astype(np.uint8))
+    
+         # #Convert image to grayscale and get the array		
+          image = image_rgb.convert("L")
+          image = np.array(image)
+         
+         #Build the kernel or mask
+                  
+         if int(mask_size) != len(str(pixel_weights)) and pixel_weights != [1] : 
+             print("")
+             print(f'\t-Please provide a vector with the pixel weights of lenght equals to {mask_size}')
+         
+         elif int(mask_size) != len(str(pixel_weights)) and pixel_weights == [1]:
+                 
+               average_kernel =  (1/(int(mask_size)*int(mask_size))) * (np.ones((int(mask_size),int(mask_size)), dtype="int"))   
+               #print(kernel)
+         else:
+              
+               average_kernel = (1/(int(mask_size)*int(mask_size))) * (np.ones((int(mask_size),int(mask_size)), dtype="int") * [pixel_weights]) 
+
+          # grab the spatial dimensions of the image
+	       # grab the spatial dimensions of the kernel
+
+         (i_height, i_width) = img.shape[:2]
+         (k_height, k_width) = average_kernel.shape[:2]
+         
+          #replicating the pixels along the border of the image
+         pad = (k_width - 1) // 2
+    
+         #Load image
+         img = cv2.copyMakeBorder(img, pad, pad, pad, pad,cv2.BORDER_REPLICATE)
+         output = np.zeros((i_height, i_width), dtype="float32")
+         
+        # loop over the input image, sliding the kernel across
+       	# each (x, y)-coordinate from left-to-right and top to
+ 	    # bottom
+    
+        #“sliding” the kernel from left-to-right and top-to-bottom 
+        #1 pixel at a time.
+
+         for y in np.arange(pad, i_height + pad):
+              for x in np.arange(pad, i_width + pad):
+                 
+            #Region of Interest (ROI)
+ 			# Extract the ROI of the image by extracting the
+ 			# *center* region of the current (x, y)-coordinates
+ 			# dimensions 
+
+                  roi = img[y - pad:y + pad + 1, x - pad:x + pad + 1]
+            
+            # perform the actual convolution by taking the
+ 			# element-wise multiplicate between the ROI and
+ 			# the kernel, then summing the matrix
+                     
+                  k = (roi * average_kernel).sum()
+                 
+                   
+            # store the convolved value in the output (x,y)-
+ 			# coordinate of the output image
+                
+                  output[y - pad, x - pad] = k
+                 
+            # rescale the output image to be in the range [0, 255]                 
+         output = rescale_intensity(output, in_range=(0, 255))
+         output = (output * 255).astype("uint8")
+         output_grey = Image.fromarray(output.astype(np.uint8))
+         
+          # return the output image
+          return output_grey.show()
+     
+    else:
+            print("")
+            print(f'\t-Mask size should be an odd integer number')
+         
+
+#Test Function ---------------------------------------------------------------            
+#path_h5py = "~/image_analysis/project/part_1/"
+#images_available_for_analisys(path_h5py_file = path_h5py)
+
+#path1 = "~/image_analysis/project/part_1"
+#mean_convolve('image_svar103.BMP', mask_size = 11, path_h5py_file=path1, pixel_weights = [1])
+```
+
+
+## Median filter with user-specified mask size and pixel weights.
+The median filter is a filter used to efficiently remove noise like the salt and
+pepper noise
+
+For this function I followed the tutorial from https://www.pyimagesearch.com/2016/07/25/convolutions-with-opencv-and-python/
+
+The function that computes the median filter is called mmedian_convolve() and takes four 
+arguments:
+
++ img: This is the name of the image in the .hdf5 file wanted to be analyzed  
+
++ path_h5py_file: is the location where the .hdf5 file is located.
+
++ mask_size: Integer odd number 
+
++ pixel_weights = Vector specifying the pixel weights. The default is 1
+
+For this procedure measurements of batch time were no obtain. 
+
+For the median filter, a kernel of 9x9 was applied and no weights were added.
+Since this image has no noise on it the resulted image was just a blur one with
+no special difference from the original.
+
+<center>
+![](/home/ecamo19/Documents/cursos_libros_tutoriales/cursos/VCU/image_analysis/project/median_filter.png)
+</center>
+
+
+```{python}
+def median_convolve(img,mask_size, pixel_weights = [1],path_h5py_file): 
+    
+    global kernel
+    if mask_size % 2 != 0:
+         
+        
+    #       #Get image from dataset
+          hdf = h5py.File(f'{path_h5py_file}/cancer_images.hdf5','r') 
+    
+          for i in hdf:
+             group = hdf.get(i) 
+             if img in group:
+                 image_array = np.array(group.get(img)) 
+                 break
+        
+          #Save array as image for use put pixel funtion
+          image_rgb = Image.fromarray(image.astype(np.uint8))
+    
+          #Convert image to grayscale and get the array		
+          image = image_rgb.convert("L")
+          image = np.array(image)
+         
+          #Build the kernel or mask
+         
+         if int(mask_size) != len(str(pixel_weights)) and pixel_weights != [1]: 
+                 print("")
+                 print(f'\t-Please provide a vector with the pixel weights of lenght equals to {mask_size}')
+         
+         elif int(mask_size) != len(str(pixel_weights)) and pixel_weights == [1]:
+                 
+                 average_kernel =  (1/(int(mask_size)*int(mask_size))) * (np.ones((int(mask_size),int(mask_size)), dtype="int"))   
+               #print(kernel)
+         else:
+              
+                 average_kernel = (1/(int(mask_size)*int(mask_size))) * (np.ones((int(mask_size),int(mask_size)), dtype="int") * [pixel_weights]) 
+
+          # grab the spatial dimensions of the image
+	       # grab the spatial dimensions of the kernel
+
+         (i_height, i_width) = image.shape[:2]
+         (k_height, k_width) = average_kernel.shape[:2]
+         
+          #replicating the pixels along the border of the image
+         pad = (k_width - 1) // 2
+    
+          #Load image
+         image = cv2.copyMakeBorder(image, pad, pad, pad, pad,cv2.BORDER_REPLICATE)
+         output = np.zeros((i_height, i_width), dtype="float32")
+         
+        # loop over the input image, sliding the kernel across
+       	# each (x, y)-coordinate from left-to-right and top to
+ 	    # bottom
+    
+        #“sliding” the kernel from left-to-right and top-to-bottom 
+        #1 pixel at a time.
+
+         for y in np.arange(pad, i_height + pad):
+              for x in np.arange(pad, i_width + pad):
+                 
+            #Region of Interest (ROI)
+ 			# Extract the ROI of the image by extracting the
+ 			# *center* region of the current (x, y)-coordinates
+ 			# dimensions 
+
+                  roi = image[y - pad:y + pad + 1, x - pad:x + pad + 1]
+            
+            # perform the actual convolution by taking the
+ 			# element-wise multiplicate between the ROI and
+ 			# the kernel, then summing the matrix
+                     
+                  k =  (roi * np.median(average_kernel)).sum()
+                 
+                   
+            # store the convolved value in the output (x,y)
+ 			# coordinate of the output image
+                
+                  output[y - pad, x - pad] = k
+                 
+            # rescale the output image to be in the range [0, 255]                 
+         output = rescale_intensity(output, in_range=(0, 255))
+         output = (output * 255).astype("uint8")
+         output_grey = Image.fromarray(output.astype(np.uint8))
+         
+          # return the output image
+          return output_grey.show()
+     
+    else:
+            print("")
+            print(f'\t-Mask size should be an odd integer number')
+
+#Test Function ---------------------------------------------------------------            
+# path_h5py = "~/image_analysis/project/part_1/"
+# images_available_for_analisys(path_h5py_file = path_h5py)
+
+#path1 = "~/image_analysis/project/part_1"
+#median_convolve('image_svar103.BMP', mask_size = 9 , path_h5py_file=path1, pixel_weights = [1])
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
