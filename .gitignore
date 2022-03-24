@@ -12,6 +12,7 @@ cancerous_cell_smears_original_images/
 
 # Distribution / packaging
 .Rmd
+.Rmd*
 .Python
 build/
 develop-eggs/
