@@ -1,8 +1,8 @@
 # Project: Cancer cell detection using machine learning techniques
 
-**This project was developed for the Image Analysis course from the Computing science Department at Virgiania Commonwealth University
+**This project was developed for the Image Analysis course from the Computing science Department at Virgiania Commonwealth University**
 
-**The data versioning of the hdf5 files was done using git lfs
+**The data versioning of the hdf5 files was done using git lfs**
 
 ## Module 1
 
