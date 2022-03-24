@@ -33,3 +33,5 @@ This module was developed for implementing several techniques to segment an imag
 + edge_detection: Implement the edge detection algorithm.
 
 + kmeans_segmentation: Uses the k-means algorithm for segmenting a image
+
+# Module 3
