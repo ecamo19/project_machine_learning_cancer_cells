@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Ignore folder
+cancerous_cell_smears_original_images/
+
+
 # C extensions
 *.so
 
