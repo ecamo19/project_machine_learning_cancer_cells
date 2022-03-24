@@ -1,4 +1,4 @@
-# Project Cancer cell identification using machine learning techniques
+# Project:Cancer cell detection using machine learning techniques
 
 This project was developed for the Image Analysis from the Computing science department at Virgiania Commonwealth University
 
