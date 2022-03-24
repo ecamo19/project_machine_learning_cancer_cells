@@ -1,2 +1,4 @@
 .hdf5 filter=lfs diff=lfs merge=lfs -text
 *.hdf5 filter=lfs diff=lfs merge=lfs -text
+data_cancerous_cell_smears.hdf5 filter=lfs diff=lfs merge=lfs -text
+module_2/data_cancerous_cell_smears.hdf5 filter=lfs diff=lfs merge=lfs -text
