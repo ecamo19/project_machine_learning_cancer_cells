@@ -1,6 +1,6 @@
 # Project: Cancer cell detection using machine learning techniques
 
-This project was developed for the Image Analysis from the Computing science department at Virgiania Commonwealth University
+This project was developed for the Image Analysis course from the Computing science Department at Virgiania Commonwealth University
 
 ## Module 1
 
