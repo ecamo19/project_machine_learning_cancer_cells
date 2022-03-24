@@ -37,6 +37,7 @@ This module was developed for implementing several techniques to segment an imag
 ## Module 3
 
 In this module I develop a Machine Learning workflow for detecting cancer cells.
+
 ![alt text](./module_3/project_report_part_3/diagram.png)
 
 
